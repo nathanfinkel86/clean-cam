@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Clean Cam">
+<title>Clean Cam</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  video { position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: cover; background: #000; }
+  body.fit video { object-fit: contain; }
+  body.mirror video { transform: scaleX(-1); }
+  #start { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 12px; color: #aaa; font: 18px -apple-system, sans-serif; text-align: center; padding: 24px; }
+  #start button { font: 600 22px -apple-system, sans-serif; padding: 16px 28px; border-radius: 14px;
+    border: 0; background: #fff; color: #000; }
+  #start small { font-size: 14px; line-height: 1.5; }
+  #err { color: #f66; }
+</style>
+</head>
+<body>
+<video id="v" autoplay playsinline muted></video>
+<div id="start">
+  <button id="go">Start camera</button>
+  <small>After it starts, nothing is drawn on screen.<br>
+  Double-tap: switch front/back camera · Two-finger tap: fill/fit<br>
+  Long-press: mirror</small>
+  <div id="err"></div>
+</div>
+<script>
+const v = document.getElementById('v');
+const start = document.getElementById('start');
+const err = document.getElementById('err');
+let facing = 'environment', stream = null, wakeLock = null;
+
+async function run() {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 60 } }
+    });
+    v.srcObject = stream;
+    start.style.display = 'none';
+    keepAwake();
+  } catch (e) {
+    err.textContent = 'Camera failed: ' + e.message + (location.protocol !== 'https:' ? ' (page must be opened over https)' : '');
+    start.style.display = 'flex';
+  }
+}
+
+async function keepAwake() {
+  try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && stream) { keepAwake(); if (!stream.active) run(); }
+});
+
+document.getElementById('go').onclick = run;
+
+let lastTap = 0, pressTimer = null;
+document.addEventListener('touchstart', e => {
+  if (!stream) return;
+  if (e.touches.length === 2) { document.body.classList.toggle('fit'); return; }
+  pressTimer = setTimeout(() => { document.body.classList.toggle('mirror'); pressTimer = null; }, 700);
+  const now = Date.now();
+  if (now - lastTap < 300) { facing = facing === 'environment' ? 'user' : 'environment'; run(); }
+  lastTap = now;
+}, { passive: true });
+document.addEventListener('touchend', () => { if (pressTimer) clearTimeout(pressTimer); });
+</script>
+</body>
+</html>
