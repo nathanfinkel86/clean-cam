@@ -5,4 +5,4 @@ One web page (`index.html`) that turns an iPhone into a clean, button-free camer
 - Deliberately tiny: no build, no dependencies. Keep it that way — any "improvement" needs Nathan's OK first.
 - This is a git repo. House git rules apply.
 
-House rules (`~/Agents/AGENTS.md`) apply as written. Nothing here overrides them.
+House rules (`~/Agents/AGENTS.md`) are the floor: this file may tighten them, never loosen them. Where the two disagree, the stricter rule wins.
